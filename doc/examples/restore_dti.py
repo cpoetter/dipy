@@ -8,7 +8,7 @@ but not other kinds, such as "physiological" noise. For example, if a subject
 moves during the acquisition of one of the diffusion-weighted samples, this
 might have a substantial effect on the parameters of the tensor fit calculated
 in all voxels in the brain for that subject. One of the pernicious consequences
-of this is that it can lead to wrong interepertation of group differences. For
+of this is that it can lead to wrong interpretation of group differences. For
 example, some groups of participants (e.g. young children, patient groups,
 etc.) are particularly prone to motion and differences in tensor parameters and
 derived statistics (such as FA) due to motion would be confounded with actual
@@ -85,7 +85,7 @@ And use them to index into the data:
 data = img.get_data()[roi_idx]
 
 """
-This data-set is not very noisy, so we will artificially corrupt it to simulate
+This dataset is not very noisy, so we will artificially corrupt it to simulate
 the effects of "physiological" noise, such as subject motion. But first, let's
 establish a baseline, using the data as it is:
 """
@@ -154,31 +154,12 @@ resulting tensor field will be distorted
 
 To estimate the parameters from the noisy data using RESTORE, we need to
 estimate what would be a reasonable amount of noise to expect in the
-measurement. There are two common ways of doing that. The first is to look at
-the variance in the signal in parts of the volume outside of the brain, or in
-the ventricles, where the signal is expected to be identical regardless of
-the direction of diffusion weighting. The variance in these regions is
-therefore noise. Another option is available, if several non diffusion-weighted
-volumes were acquired. In this cas,e the variance in these volumes is an
-estimate of 'reasonable' noise in the data.
-"""
-
-mean_std = np.mean(np.std(data[..., gtab.b0s_mask], -1))
+measurement. To do that, we use the `dipy.denoise.noise_estimate` module:  
 
 """
-This estimate is usually based on a small sample, and is thus a bit biased (for
-a proof of that fact, see the following derivation_.)
 
-.. _derivation: http://nbviewer.ipython.org/4287207
-
-Therefore, we apply a small-sample correction. In this case, the bias is rather
-small:
-"""
-
-from scipy.special import gamma
-n = np.sum(gtab.b0s_mask)
-bias = mean_std*(1. - np.sqrt(2. / (n-1)) * (gamma(n / 2.) / gamma((n-1) / 2.)))
-sigma = mean_std + bias
+import dipy.denoise.noise_estimate as ne
+sigma = ne.estimate_sigma(data)
 
 """
 This estimate of the standard deviation will be used by the RESTORE algorithm

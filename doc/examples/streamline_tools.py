@@ -21,11 +21,15 @@ from dipy.tracking.eudx import EuDX
 from dipy.reconst import peaks, shm
 from dipy.tracking import utils
 
-from dipy.data import read_stanford_labels
+from dipy.data import read_stanford_labels, fetch_stanford_t1, read_stanford_t1
 
 hardi_img, gtab, labels_img = read_stanford_labels()
 data = hardi_img.get_data()
 labels = labels_img.get_data()
+
+fetch_stanford_t1()
+t1 = read_stanford_t1()
+t1_data = t1.get_data()
 
 """
 We've loaded an image called ``labels_img`` which is a map of tissue types such
@@ -98,8 +102,16 @@ cc_streamlines_actor = fvtk.line(cc_streamlines, line_colors(cc_streamlines))
 cc_ROI_actor = fvtk.contour(cc_slice, levels=[1], colors=[(1., 1., 0.)],
                             opacities=[1.])
 
+vol_actor = fvtk.slicer(t1_data)
+
+vol_actor.display(40, None, None)
+vol_actor2 = vol_actor.copy()
+vol_actor2.display(None, None, 35)
+
 # Add display objects to canvas
 r = fvtk.ren()
+fvtk.add(r, vol_actor)
+fvtk.add(r, vol_actor2)
 fvtk.add(r, cc_streamlines_actor)
 fvtk.add(r, cc_ROI_actor)
 

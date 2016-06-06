@@ -4,7 +4,7 @@ from numpy.lib.stride_tricks import as_strided
 
 from ..core.ndindex import ndindex
 from .quick_squash import quick_squash as _squash
-from .base import ReconstModel, ReconstFit
+from .base import ReconstFit
 
 
 def multi_voxel_fit(single_voxel_fit):
@@ -60,6 +60,43 @@ class MultiVoxelFit(ReconstFit):
             return MultiVoxelFit(self.model, item, self.mask[index])
         else:
             return item
+
+    def predict(self, *args, **kwargs):
+        """
+        Predict for the multi-voxel object using each single-object's
+        prediction API, with S0 provided from an array.
+        """
+        if not hasattr(self.model, 'predict'):
+            msg = "This model does not have prediction implemented yet"
+            raise NotImplementedError(msg)
+
+        S0 = kwargs.get('S0', np.ones(self.fit_array.shape))
+        idx = ndindex(self.fit_array.shape)
+        ijk = next(idx)
+
+        def gimme_S0(S0, ijk):
+            if isinstance(S0, np.ndarray):
+                return S0[ijk]
+            else:
+                return S0
+
+        kwargs['S0'] = gimme_S0(S0, ijk)
+        # If we have a mask, we might have some Nones up front, skip those:
+        while self.fit_array[ijk] is None:
+            ijk = next(idx)
+
+        first_pred = self.fit_array[ijk].predict(*args, **kwargs)
+        result = np.zeros(self.fit_array.shape + (first_pred.shape[-1],))
+        result[ijk] = first_pred
+        for ijk in idx:
+            kwargs['S0'] = gimme_S0(S0, ijk)
+            # If it's masked, we predict a 0:
+            if self.fit_array[ijk] is None:
+                result[ijk] *= 0
+            else:
+                result[ijk] = self.fit_array[ijk].predict(*args, **kwargs)
+
+        return result
 
 
 class CallableArray(np.ndarray):

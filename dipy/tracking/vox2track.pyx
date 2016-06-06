@@ -2,15 +2,78 @@
 """This module contains the parts of dipy.tracking.utils that need to be
 implemented in cython.
 """
-
 import cython
 
 import numpy as np
 cimport numpy as cnp
 from ._utils import _mapping_to_voxel, _to_voxel_coordinates
 
+from ..utils.six.moves import xrange
+
 cdef extern from "dpy_math.h":
     double floor(double x)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.profile(False)
+def _voxel2streamline(sl,
+                      cnp.ndarray[cnp.npy_intp, ndim=2] unique_idx):
+    """
+    Maps voxels to streamlines and streamlines to voxels, for setting up
+    the LiFE equations matrix
+
+    Parameters
+    ----------
+    sl : list
+        A collection of streamlines, each n by 3, with n being the number of
+        nodes in the fiber.
+
+    unique_idx : array.
+       The unique indices in the streamlines
+
+    Returns
+    -------
+    v2f, v2fn : tuple of dicts
+
+    The first dict in the tuple answers the question: Given a voxel (from
+    the unique indices in this model), which fibers pass through it?
+
+    The second answers the question: Given a streamline, for each voxel that
+    this streamline passes through, which nodes of that streamline are in that
+    voxel?
+    """
+    # Define local counters:
+    cdef int s_idx, node_idx, voxel_id, ii
+    cdef dict vox_dict = {}
+    for ii in range(len(unique_idx)):
+        vox = unique_idx[ii]
+        vox_dict[vox[0], vox[1], vox[2]] = ii
+    # Outputs are these dicts:
+    cdef dict v2f = {}
+    cdef dict v2fn = {}
+    # In each fiber:
+    for s_idx in range(len(sl)):
+        sl_as_idx = np.round(sl[s_idx]).astype(int)
+        v2fn[s_idx] = {}
+        # In each voxel present in there:
+        for node_idx in range(len(sl_as_idx)):
+            node = sl_as_idx[node_idx]
+            # What serial number is this voxel in the unique voxel indices:
+            voxel_id = vox_dict[node[0], node[1], node[2]]
+            # Add that combination to the dict:
+            if voxel_id in v2f:
+                if s_idx not in v2f[voxel_id]:
+                    v2f[voxel_id].append(s_idx)
+            else:
+                v2f[voxel_id] = [s_idx]
+            # All the nodes going through this voxel get its number:
+            if voxel_id in v2fn[s_idx]:
+                v2fn[s_idx][voxel_id].append(node_idx)
+            else:
+                v2fn[s_idx][voxel_id] = [node_idx]
+    return v2f ,v2fn
+
 
 def streamline_mapping(streamlines, voxel_size=None, affine=None,
                        mapping_as_streamlines=False):
@@ -74,7 +137,7 @@ def streamline_mapping(streamlines, voxel_size=None, affine=None,
     for i, sl in enumerate(streamlines):
         voxel_indices = _to_voxel_coordinates(sl, lin, offset)
 
-        # Get the unique voxels every streamline passes though
+        # Get the unique voxels every streamline passes through
         uniq_points = set()
         for j in range(voxel_indices.shape[0]):
             point = (voxel_indices[j, 0],
@@ -147,16 +210,16 @@ def track_counts(tracks, vol_dims, vox_sizes=(1,1,1), return_elements=True):
     Imagine you had voxel coordinate tracks in ``vs``.  To just fill an array
     with the counts of how many tracks pass through each voxel:
 
-    >>> vox_track0 = np.array([[0,0,0],[1.1,2.2,3.3],[2.2,4.4,6.6]])
-    >>> vox_track1 = np.array([[0,0,0],[0,0,1],[0,0,2]])
+    >>> vox_track0 = np.array([[0, 0, 0], [1.1, 2.2, 3.3], [2.2, 4.4, 6.6]])
+    >>> vox_track1 = np.array([[0, 0, 0], [0, 0, 1], [0, 0, 2]])
     >>> vs = (vox_track0, vox_track1)
     >>> vox_dim = (10, 20, 30) # original voxel array size
-    >>> tcs=track_counts(vs, vox_dim, (1,1,1), False)
+    >>> tcs = track_counts(vs, vox_dim, (1, 1, 1), False)
     >>> tcs.shape
     (10, 20, 30)
-    >>> tcs[0,0,0:4]
+    >>> tcs[0, 0, 0:4]
     array([2, 1, 1, 0])
-    >>> tcs[1,2,3], tcs[2,4,7]
+    >>> tcs[1, 2, 3], tcs[2, 4, 7]
     (1, 1)
 
     You can also use the routine to count into larger-than-voxel boxes.  To do

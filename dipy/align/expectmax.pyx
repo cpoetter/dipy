@@ -7,15 +7,13 @@
 import numpy as np
 cimport cython
 cimport numpy as cnp
-from fused_types cimport floating, number
-
-cdef extern from "math.h":
-    double floor(double x) nogil
-    int isinf(double) nogil
+from .fused_types cimport floating, number
+cdef extern from "dpy_math.h" nogil:
+    int dpy_isinf(double)
+    double floor(double)
 
 cdef inline int ifloor(double x) nogil:
     return int(floor(x))
-
 
 def quantize_positive_2d(floating[:, :] v, int num_levels):
     r"""Quantizes a 2D image to num_levels quantization levels
@@ -111,7 +109,7 @@ def quantize_positive_2d(floating[:, :] v, int num_levels):
                     out[i, j] = 0
                     hist[0] += 1
 
-    return out, levels, hist
+    return np.asarray(out), np.array(levels), np.array(hist)
 
 
 def quantize_positive_3d(floating[:, :, :] v, int num_levels):
@@ -211,7 +209,7 @@ def quantize_positive_3d(floating[:, :, :] v, int num_levels):
                     else:
                         out[k, i, j] = 0
                         hist[0] += 1
-    return out, levels, hist
+    return np.asarray(out), np.asarray(levels), np.asarray(hist)
 
 
 def compute_masked_class_stats_2d(int[:, :] mask, floating[:, :] v,
@@ -278,7 +276,7 @@ def compute_masked_class_stats_2d(int[:, :] mask, floating[:, :] v,
                 variances[i] /= counts[i]
             else:
                 variances[i] = INF64
-    return means, variances
+    return np.asarray(means), np.asarray(variances)
 
 
 def compute_masked_class_stats_3d(int[:, :, :] mask, floating[:, :, :] v,
@@ -347,7 +345,7 @@ def compute_masked_class_stats_3d(int[:, :, :] mask, floating[:, :, :] v,
                 variances[i] /= counts[i]
             else:
                 variances[i] = INF64
-    return means, variances
+    return np.asarray(means), np.asarray(variances)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -369,7 +367,7 @@ def compute_em_demons_step_2d(floating[:,:] delta_field,
 
     Parameters
     ----------
-    delta_field : array, shape(R, C)
+    delta_field : array, shape (R, C)
         contains, at each pixel, the difference between the moving image (warped
         under the current deformation s(. , .) ) J and the static image I:
         delta_field[i,j] = J(s(i,j)) - I(i,j). The order is important, changing
@@ -377,16 +375,16 @@ def compute_em_demons_step_2d(floating[:,:] delta_field,
         warping the static image towards the moving, which may not be the
         intended behavior unless the 'gradient_moving' passed corresponds to
         the gradient of the static image
-    sigma_sq_field : array, shape(R, C)
+    sigma_sq_field : array, shape (R, C)
         contains, at each pixel (i, j), the estimated variance (not std) of the
         hidden variable associated to the intensity at static[i,j] (which must
         have been previously quantized)
-    gradient_moving : array, shape(R, C, 2)
+    gradient_moving : array, shape (R, C, 2)
         the gradient of the moving image
     sigma_sq_x : float
         parameter controlling the amount of regularization. It corresponds to
         $\sigma_x^2$ in algorithm 1 of Vercauteren et al.[2]
-    out : array, shape(R, C, 2)
+    out : array, shape (R, C, 2)
         the resulting demons step will be written to this array
 
     Returns
@@ -425,7 +423,7 @@ def compute_em_demons_step_2d(floating[:,:] delta_field,
                 sigma_sq_i = sigma_sq_field[i,j]
                 delta = delta_field[i,j]
                 energy += (delta**2)
-                if(isinf(sigma_sq_i)):
+                if dpy_isinf(sigma_sq_i) != 0:
                     out[i, j, 0], out[i, j, 1] = 0, 0
                 else:
                     nrm2 = (gradient_moving[i, j, 0]**2 +
@@ -443,7 +441,7 @@ def compute_em_demons_step_2d(floating[:,:] delta_field,
                         prod = sigma_sq_x * delta
                         out[i, j, 0] = prod * gradient_moving[i, j, 0] / den
                         out[i, j, 1] = prod * gradient_moving[i, j, 1] / den
-    return out, energy
+    return np.asarray(out), energy
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -465,7 +463,7 @@ def compute_em_demons_step_3d(floating[:,:,:] delta_field,
 
     Parameters
     ----------
-    delta_field : array, shape(S, R, C)
+    delta_field : array, shape (S, R, C)
         contains, at each pixel, the difference between the moving image (warped
         under the current deformation s ) J and the static image I:
         delta_field[k,i,j] = J(s(k,i,j)) - I(k,i,j). The order is important,
@@ -473,16 +471,16 @@ def compute_em_demons_step_3d(floating[:,:,:] delta_field,
         backward demons step warping the static image towards the moving, which
         may not be the intended behavior unless the 'gradient_moving' passed
         corresponds to the gradient of the static image
-    sigma_sq_field : array, shape(S, R, C)
+    sigma_sq_field : array, shape (S, R, C)
         contains, at each pixel (k, i, j), the estimated variance (not std) of
         the hidden variable associated to the intensity at static[k,i,j] (which
         must have been previously quantized)
-    gradient_moving : array, shape(S, R, C, 2)
+    gradient_moving : array, shape (S, R, C, 2)
         the gradient of the moving image
     sigma_sq_x : float
         parameter controlling the amount of regularization. It corresponds to
         $\sigma_x^2$ in algorithm 1 of Vercauteren et al.[2].
-    out : array, shape(S, R, C, 2)
+    out : array, shape (S, R, C, 2)
         the resulting demons step will be written to this array
 
     Returns
@@ -523,7 +521,7 @@ def compute_em_demons_step_3d(floating[:,:,:] delta_field,
                     sigma_sq_i = sigma_sq_field[k,i,j]
                     delta = delta_field[k,i,j]
                     energy += (delta**2)
-                    if(isinf(sigma_sq_i)):
+                    if dpy_isinf(sigma_sq_i) != 0:
                         out[k, i, j, 0] = 0
                         out[k, i, j, 1] = 0
                         out[k, i, j, 2] = 0
@@ -551,4 +549,4 @@ def compute_em_demons_step_3d(floating[:,:,:] delta_field,
                                 gradient_moving[k, i, j, 1] / den)
                             out[k, i, j, 2] = (sigma_sq_x * delta *
                                 gradient_moving[k, i, j, 2] / den)
-    return out, energy
+    return np.asarray(out), energy

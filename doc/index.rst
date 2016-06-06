@@ -4,24 +4,35 @@
 Diffusion Imaging In Python
 ###########################
 
-Dipy_ is a **free** and **open source** software project for
-**diffusion** *magnetic resonance imaging* (dMRI) **analysis**.
-
+Dipy_ is a **free** and **open source** software project for computational neuroanatomy,
+focusing mainly on **diffusion** *magnetic resonance imaging* (dMRI) analysis. It implements a
+broad range of algorithms for denoising, registration, reconstruction, tracking, clustering,
+visualization, and statistical analysis of MRI data.
 
 **********
 Highlights
 **********
 
-**Dipy 0.7.1** is now available for :ref:`download <installation>` with **3X** more tutorials than 0.6.0! In addition, a `journal paper`_ focusing on teaching the fundamentals of Dipy is now available in Frontiers of Neuroinformatics.
+**Dipy 0.11.0** is now available. New features include:
 
-.. raw :: html
+- New framework for contextual enhancement of ODFs.
+- Compatibility with numpy (1.11).
+- Compatibility with VTK 7.0 which supports Python 3.x.
+- Faster PIESNO for noise estimation.
+- Reorient gradient directions according to motion correction parameters.
+- Supporting Python 3.3+ but not 3.2.
+- Reduced memory usage in DTI.
+- DSI now can use datasets with multiple b0s.
+- Fixed different issues with Windows 64bit and Python 3.5.
 
-	<div style="width: 80% max-width=800px">
-		<a href="http://www.frontiersin.org/Neuroinformatics/10.3389/fninf.2014.00008/abstract" target="_blank"><img alt=" " class="align-center" src="_static/dipy_paper_logo.jpg" style="width: 90%;max-height: 90%">
-        </a>
-	</div>
+**Dipy 0.10.1** is now available. New features in this release include:
 
-So, how similar are your bundles to the real anatomy? Learn how to optimize your analysis as we did to create the fornix of the figure above, by reading the tutorials in our :ref:`gallery <examples>`.
+- Compatibility with new versions of scipy (0.16) and numpy (1.10).
+- New cleaner visualization API, including compatibility with VTK 6, and functions to create your own interactive visualizations.
+- Diffusion Kurtosis Imaging (DKI): Google Summer of Code work by Rafael Henriques.
+- Mean Apparent Propagator (MAP) MRI for tissue microstructure estimation.
+- Anisotropic Power Maps from spherical harmonic coefficients.
+- A new framework for affine registration of images.
 
 See :ref:`older highlights <old_highlights>`.
 
@@ -30,17 +41,15 @@ See :ref:`older highlights <old_highlights>`.
 Announcements
 *************
 
-- The creators of Dipy will attend both ISMRM and HBM 2014. Come and meet us!
-- A new **hands on Dipy** seminar to 50 neuroscientists from Canada, as part of QBIN's "Do's and dont's of diffusion MRI" workshop, 8 April, 2014.
-- `Dipy paper`_ accepted in Frontiers of Neuroinformatics, 22 January, 2014.
-- **Dipy 0.7.1** Released!, 16 January, 2014.
-- **Dipy 0.7.0** Released!, 23 December, 2013.
-- **Spherical Deconvolution** algorithms are now included in the current development version 0.7.0dev. See the examples in :ref:`gallery <examples>`, 24 June 2013.
-- A team of Dipy developers **wins** the `IEEE ISBI HARDI challenge <http://hardi.epfl.ch/static/events/2013_ISBI/workshop.html#results>`_, 7 April, 2013.
-- **Hands on Dipy** seminar took place at the dMRI course of the CREATE-MIA summer school, 5-7 June, McGill, Montreal, 2013.
-- **Dipy 0.6.0** Released!, 30 March, 2013.
-- **Dipy 3rd Sprint**, Berkeley, CA, 8-18 April, 2013.
-- **IEEE ISBI HARDI challenge** 2013 chooses **Dipy**, February, 2013.
+- :ref:`Dipy 0.11 <release0.11>` released February 21, 2016.
+- :ref:`Dipy 0.10 <release0.10>` released December 4, 2015.
+- :ref:`Dipy 0.9.2 <release0.9>` released, March 18, 2015.
+- :ref:`Dipy 0.8.0 <release0.8>` released, January 6, 2015.
+- Dipy_ was an official exhibitor in `HBM 2015 <http://ohbm.loni.usc.edu>`_.
+- Dipy was featured in `The Scientist Magazine <http://www.the-scientist.com/?articles.view/articleNo/41266/title/White-s-the-Matter>`_, Nov, 2014.
+- `Dipy paper`_ accepted in Frontiers of Neuroinformatics, January 22nd, 2014.
+
+See some of our :ref:`past announcements <old_news>`
 
 
 ***************
@@ -75,7 +84,7 @@ In this example we use only a few voxels with 101 gradient directions::
     from dipy.reconst.dti import color_fa
     cfa = color_fa(fa, tenfit.evecs)
 
-As an exercise try to calculate the `color FA` with your datasets. Here is how
+As an exercise try to calculate the `color FA` with your datasets. Here is what
 a slice should look like.
 
 .. image:: _static/colorfa.png
@@ -95,7 +104,16 @@ You can learn more about how you to use Dipy_ with  your datasets by reading the
    documentation
    stateoftheart
 
+*******
+Support
+*******
 
+We acknowledge support from the following organizations:
 
+- The Gordon and Betty Moore Foundation and the Alfred P. Sloan Foundation, through the
+  University of Washington eScience Institute Data Science Environment.
+
+- Google supported the work of Rafael Neto Henriques and Julio Villalon through the Google
+  Summer of Code Program, Summer 2015.
 
 .. include:: links_names.inc
